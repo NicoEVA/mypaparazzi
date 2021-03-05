@@ -142,7 +142,7 @@ void orange_avoider_periodic(void)
         navigation_state = OUT_OF_BOUNDS;
       } else if (obstacle_free_confidence == 0){
         navigation_state = OBSTACLE_FOUND;
-      } else if (mse < 0.01){
+      } else if (mse < 0.05){
         moveWaypointNext(WP_NEXT_TARGET);
       } else {
     	NavGotoWaypointHeading(WP_NEXT_TARGET);
