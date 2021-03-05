@@ -145,6 +145,7 @@ void orange_avoider_periodic(void)
       } else if (mse < 0.01){
         moveWaypointNext(WP_NEXT_TARGET);
       } else {
+    	NavGotoWaypointHeading(WP_NEXT_TARGET);
         moveWaypointForward(WP_GOAL, moveDistance);
       }
 
