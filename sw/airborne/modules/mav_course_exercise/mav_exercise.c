@@ -51,14 +51,16 @@ float oob_haeding_increment = 5.f;      // heading angle increment if out of bou
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
 
+
 // needed to receive output from a separate module running on a parallel process
 #ifndef ORANGE_AVOIDER_VISUAL_DETECTION_ID
 #define ORANGE_AVOIDER_VISUAL_DETECTION_ID ABI_BROADCAST
 #endif
+/*
 #ifndef ORANGE_AVOIDER_OPTICFLOW_CAMERA_ID
 #define ORANGE_AVOIDER_OPTICFLOW_CAMERA_ID ABI_BROADCAST
 #endif
-
+*/
 
 static abi_event color_detection_ev;
 static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
@@ -69,7 +71,7 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
   color_count = quality;
 }
 
-
+/*
 static abi_event opticflow_detection_ev;
 static void opticflow_detection_cb(uint32_t __attribute__((unused)) stamp,
                                int16_t __attribute__((unused)) flow_x, 
@@ -80,11 +82,13 @@ static void opticflow_detection_cb(uint32_t __attribute__((unused)) stamp,
                                float size_divergence) {
   div = size_divergence;
 }
+*/
+
 
 void mav_exercise_init(void) {
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
-  AbiBindMsgOPTICFLOW_CAMERA(ORANGE_AVOIDER_OPTICFLOW_CAMERA_ID, &opticflow_detection_ev, opticflow_detection_cb);
+ // AbiBindMsgOPTICFLOW_CAMERA(ORANGE_AVOIDER_OPTICFLOW_CAMERA_ID, &opticflow_detection_ev, opticflow_detection_cb);
 }
 
 void mav_exercise_periodic(void) {
@@ -97,7 +101,7 @@ void mav_exercise_periodic(void) {
   // front_camera defined in airframe xml, with the video_capture module
   int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+
 
   // update our safe confidence using color threshold
   if (color_count < color_count_threshold) {
@@ -114,7 +118,7 @@ void mav_exercise_periodic(void) {
       moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY), WaypointY(WP_TRAJECTORY))) {
         navigation_state = OUT_OF_BOUNDS;
-      } else if (div > 0.3) {
+      } else if (bstacle_free_confidence == 0){
         navigation_state = OBSTACLE_FOUND;
       } else {
         moveWaypointForward(WP_GOAL, moveDistance);
@@ -126,7 +130,7 @@ void mav_exercise_periodic(void) {
       waypoint_move_here_2d(WP_GOAL);
       waypoint_move_here_2d(WP_TRAJECTORY);
 
-      increase_nav_heading(35);
+      increase_nav_heading(30f);
       navigation_state = SAFE;
       break;
     case OUT_OF_BOUNDS:
