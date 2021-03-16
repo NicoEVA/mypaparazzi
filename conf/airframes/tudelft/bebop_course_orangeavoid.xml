@@ -56,6 +56,16 @@
     <!--module name="bebop_ae_awb">
       <define name="CV_AE_AWB_VERBOSE" value="0" />
     </module-->
+    <module  name="cv_opticflow">
+      <define  name="OPTICFLOW_CAMERA" value="front_camera"/>
+      <define  name="MAX_HORIZON" value="10"/>
+      <define  name="OPTICFLOW_MAX_TRACK_CORNERS" value="10"/>
+      <define  name="OPTICFLOW_SUBPIXEL_FACTOR" value="200"/>
+      <define  name="OPTICFLOW_CORNER_METHOD" value="0"/>
+      <define  name="OPTICFLOW_DEROTATION_CORRECTION_FACTOR_X" value="0.8"/>
+      <define  name="OPTICFLOW_DEROTATION_CORRECTION_FACTOR_Y" value="0.85"/>
+      <define  name="MAX_TRACK_CORNERS" value="10"/>
+    </module >
     <module name="video_capture">
       <define name="VIDEO_CAPTURE_CAMERA" value="front_camera"/>
       <define name="VIDEO_CAPTURE_FPS" value="10"/>

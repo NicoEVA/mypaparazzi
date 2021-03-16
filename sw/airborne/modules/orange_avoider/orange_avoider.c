@@ -59,6 +59,8 @@ int32_t color_count = 0;                // orange color count from color filter 
 int16_t obstacle_free_confidence = 0;   // a measure of how certain we are that the way ahead is safe.
 float heading_increment = 5.f;          // heading angle increment [deg]
 float maxDistance = 2.25;               // max waypoint displacement [m]
+float divergencevalue = 0;
+
 
 const int16_t max_trajectory_confidence = 5; // number of consecutive negative object detections to be sure we are obstacle free
 
@@ -81,6 +83,22 @@ static void color_detection_cb(uint8_t __attribute__((unused)) sender_id,
   color_count = quality;
 }
 
+#ifndef ORANGE_AVOIDER_OPTICAL_FLOW_ID
+#define ORANGE_AVOIDER_OPTICAL_FLOW_ID ABI_BROADCAST
+#endif
+static abi_event opticflow_detection_ev;
+static void opticflow_detection_cb(uint32_t __attribute__((unused)) stamp,
+                               int16_t __attribute__((unused)) flow_x, 
+                               int16_t __attribute__((unused)) flow_y,
+                               int16_t __attribute__((unused)) flow_der_x,
+                               int16_t __attribute__((unused)) flow_der_y,
+                               float   __attribute__((unused)) quality, 
+                               float size_divergence) 
+{
+  divergencevalue = size_divergence;
+}
+
+
 /*
  * Initialisation function, setting the colour filter, random seed and heading_increment
  */
@@ -92,6 +110,7 @@ void orange_avoider_init(void)
 
   // bind our colorfilter callbacks to receive the color filter outputs
   AbiBindMsgVISUAL_DETECTION(ORANGE_AVOIDER_VISUAL_DETECTION_ID, &color_detection_ev, color_detection_cb);
+  AbiBindMsgOPTICAL_FLOW(ORANGE_AVOIDER_OPTICAL_FLOW_ID, &opticflow_detection_ev, opticflow_detection_cb);
 }
 
 /*
@@ -107,8 +126,8 @@ void orange_avoider_periodic(void)
   // compute current color thresholds
   int32_t color_count_threshold = oa_color_count_frac * front_camera.output_size.w * front_camera.output_size.h;
 
-  VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
-
+  //VERBOSE_PRINT("Color_count: %d  threshold: %d state: %d \n", color_count, color_count_threshold, navigation_state);
+  
   // update our safe confidence using color threshold
   if(color_count < color_count_threshold){
     obstacle_free_confidence++;
@@ -124,10 +143,12 @@ void orange_avoider_periodic(void)
   switch (navigation_state){
     case SAFE:
       // Move waypoint forward
+      VERBOSE_PRINT("Divergence Value: %f  state: %d \n", divergencevalue, navigation_state);
       moveWaypointForward(WP_TRAJECTORY, 1.5f * moveDistance);
       if (!InsideObstacleZone(WaypointX(WP_TRAJECTORY),WaypointY(WP_TRAJECTORY))){
         navigation_state = OUT_OF_BOUNDS;
-      } else if (obstacle_free_confidence == 0){
+      } //else if (obstacle_free_confidence == 0){
+        else if (divergencevalue > 0.3f){
         navigation_state = OBSTACLE_FOUND;
       } else {
         moveWaypointForward(WP_GOAL, moveDistance);
@@ -188,7 +209,7 @@ uint8_t increase_nav_heading(float incrementDegrees)
   // for performance reasons the navigation variables are stored and processed in Binary Fixed-Point format
   nav_heading = ANGLE_BFP_OF_REAL(new_heading);
 
-  VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
+  //VERBOSE_PRINT("Increasing heading to %f\n", DegOfRad(new_heading));
   return false;
 }
 
@@ -213,9 +234,11 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
   // Now determine where to place the waypoint you want to go to
   new_coor->x = stateGetPositionEnu_i()->x + POS_BFP_OF_REAL(sinf(heading) * (distanceMeters));
   new_coor->y = stateGetPositionEnu_i()->y + POS_BFP_OF_REAL(cosf(heading) * (distanceMeters));
+  /*
   VERBOSE_PRINT("Calculated %f m forward position. x: %f  y: %f based on pos(%f, %f) and heading(%f)\n", distanceMeters,	
                 POS_FLOAT_OF_BFP(new_coor->x), POS_FLOAT_OF_BFP(new_coor->y),
                 stateGetPositionEnu_f()->x, stateGetPositionEnu_f()->y, DegOfRad(heading));
+  */
   return false;
 }
 
@@ -224,8 +247,10 @@ uint8_t calculateForwards(struct EnuCoor_i *new_coor, float distanceMeters)
  */
 uint8_t moveWaypoint(uint8_t waypoint, struct EnuCoor_i *new_coor)
 {
+  /*
   VERBOSE_PRINT("Moving waypoint %d to x:%f y:%f\n", waypoint, POS_FLOAT_OF_BFP(new_coor->x),
                 POS_FLOAT_OF_BFP(new_coor->y));
+  */
   waypoint_move_xy_i(waypoint, new_coor->x, new_coor->y);
   return false;
 }
